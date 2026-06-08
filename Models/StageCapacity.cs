@@ -2,6 +2,7 @@ namespace AdminDashboard.Models;
 
 public class StageCapacity
 {
+    public int StageId { get; set; }
     public string StageName { get; set; } = string.Empty;
     public int CurrentCapacity { get; set; }
     public int MaxCapacity { get; set; }

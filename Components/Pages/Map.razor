@@ -45,7 +45,21 @@
     </div>
 
     <div class="overlay-panel glass-panel right-panel">
-        <h2 class="panel-title">Live Alerts</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h2 class="panel-title" style="margin: 0; padding: 0; border: none;">Live Alerts</h2>
+            @if(StompService.IsConnected)
+            {
+                <span style="background: rgba(40, 167, 69, 0.2); color: #28a745; padding: 4px 8px; border-radius: 12px; font-size: 0.75em; border: 1px solid #28a745;">
+                    <i class="bi bi-circle-fill" style="font-size: 0.6em; margin-right: 4px; vertical-align: middle;"></i> STOMP Connected
+                </span>
+            }
+            else
+            {
+                <span style="background: rgba(220, 53, 69, 0.2); color: #dc3545; padding: 4px 8px; border-radius: 12px; font-size: 0.75em; border: 1px solid #dc3545;">
+                    <i class="bi bi-circle-fill" style="font-size: 0.6em; margin-right: 4px; vertical-align: middle;"></i> STOMP Disconnected
+                </span>
+            }
+        </div>
         <div class="alerts-container">
             @if (!alerts.Any())
             {
@@ -68,11 +82,61 @@
         </div>
         
         <div class="quick-actions">
-            <button class="action-btn btn-primary"><span class="bi bi-broadcast"></span> Send Alert</button>
+            <button class="action-btn btn-primary" disabled="@(!StompService.IsConnected)" @onclick="() => showSendAlertModal = true"><span class="bi bi-broadcast"></span> Send Alert</button>
             <button class="action-btn btn-secondary"><span class="bi bi-people-fill"></span> Dispatch Staff</button>
         </div>
     </div>
 </div>
+
+@if (showSendAlertModal)
+{
+    <div class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+        <div class="glass-panel" style="width: 400px; padding: 25px; border-radius: 12px; background: rgba(20, 20, 25, 0.95);">
+            <h3 style="color: white; margin-top: 0;">Send Custom Alert</h3>
+            
+            <div style="margin-bottom: 15px;">
+                <label style="color: #aaa; font-size: 0.9em;">Stage:</label>
+                <select @bind="newAlert.StageId" style="width:100%; padding: 8px; border-radius: 4px; border: 1px solid #444; background: #222; color: white;">
+                    <option value="0">Select a stage...</option>
+                    @foreach(var stage in stages)
+                    {
+                        <option value="@stage.StageId">@stage.StageName</option>
+                    }
+                </select>
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <label style="color: #aaa; font-size: 0.9em;">Type:</label>
+                <select @bind="newAlert.Type" style="width:100%; padding: 8px; border-radius: 4px; border: 1px solid #444; background: #222; color: white;">
+                    <option value="SAFETY">SAFETY</option>
+                    <option value="MEDICAL">MEDICAL</option>
+                    <option value="CROWD">CROWD</option>
+                    <option value="SECURITY">SECURITY</option>
+                    <option value="INFO">INFO</option>
+                </select>
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <label style="color: #aaa; font-size: 0.9em;">Severity:</label>
+                <select @bind="newAlert.Severity" style="width:100%; padding: 8px; border-radius: 4px; border: 1px solid #444; background: #222; color: white;">
+                    <option value="HIGH">HIGH</option>
+                    <option value="MEDIUM">MEDIUM</option>
+                    <option value="LOW">LOW</option>
+                </select>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <label style="color: #aaa; font-size: 0.9em;">Message:</label>
+                <textarea @bind="newAlert.Message" rows="3" style="width:100%; padding: 8px; border-radius: 4px; border: 1px solid #444; background: #222; color: white; resize: vertical;"></textarea>
+            </div>
+            
+            <div style="display: flex; gap: 10px;">
+                <button class="action-btn btn-primary" @onclick="SubmitAlert" style="flex: 1;">Send Alert</button>
+                <button class="action-btn btn-secondary" @onclick="() => showSendAlertModal = false" style="flex: 1;">Cancel</button>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
     private List<StageCapacity> stages = new();
@@ -82,6 +146,9 @@
     private bool _stagesDrawn = false;
     private bool isLoading = true;
     private string errorMessage = string.Empty;
+    
+    private bool showSendAlertModal = false;
+    private CustomAlertRequest newAlert = new CustomAlertRequest { Type = "SAFETY", Severity = "HIGH" };
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -115,6 +182,7 @@
             StompService.OnHeatmapUpdated += HandleHeatmapUpdate;
             StompService.OnStagesUpdated += HandleStagesUpdate;
             StompService.OnAlertReceived += HandleAlertReceived;
+            StompService.OnConnectionStateChanged += HandleConnectionStateChanged;
 
             await StompService.ConnectAsync();
         }
@@ -153,10 +221,31 @@
         });
     }
 
+    private void HandleConnectionStateChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
     public void Dispose()
     {
         StompService.OnHeatmapUpdated -= HandleHeatmapUpdate;
         StompService.OnStagesUpdated -= HandleStagesUpdate;
         StompService.OnAlertReceived -= HandleAlertReceived;
+        StompService.OnConnectionStateChanged -= HandleConnectionStateChanged;
+    }
+
+    private async Task SubmitAlert()
+    {
+        if (newAlert.StageId == 0 || string.IsNullOrEmpty(newAlert.Type) || string.IsNullOrEmpty(newAlert.Severity))
+        {
+            // Simple validation: make sure they selected a stage
+            if (newAlert.StageId == 0) return;
+        }
+
+        await StompService.SendAlertAsync(newAlert);
+        
+        // Reset form
+        newAlert = new CustomAlertRequest { Type = "SAFETY", Severity = "HIGH" };
+        showSendAlertModal = false;
     }
 }
