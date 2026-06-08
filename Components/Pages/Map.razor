@@ -1,7 +1,162 @@
-﻿@page "/map"
+@page "/"
+@page "/map"
 @rendermode InteractiveServer
+@using AdminDashboard.Models
+@using AdminDashboard.Services
+@inject IFestivalStompService StompService
+@inject IFestivalDataService DataService
+@inject IJSRuntime JSRuntime
+@implements IDisposable
 
-<PageTitle>Counter</PageTitle>
+<PageTitle>Festival Dashboard</PageTitle>
 
-<h1>Map</h1>
+<div class="dashboard-container">
+    <div id="map" class="map-background"></div>
 
+    <div class="overlay-panel glass-panel left-panel">
+        <h2 class="panel-title">Festival Overview</h2>
+        
+        <div class="stages-container">
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="error-text" style="color: red; margin-bottom: 10px;">@errorMessage</div>
+            }
+            @if (isLoading)
+            {
+                <div class="loading-text">Loading festival data...</div>
+            }
+            else if (!stages.Any())
+            {
+                <div class="loading-text">Awaiting data...</div>
+            }
+            @foreach (var stage in stages)
+            {
+                <div class="stage-card">
+                    <div class="stage-header">
+                        <span class="stage-name">@stage.StageName</span>
+                        <span class="stage-capacity">@stage.CurrentCapacity.ToString("N0") / @stage.MaxCapacity.ToString("N0")</span>
+                    </div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill @(stage.FillPercentage > 0.8 ? "fill-critical" : (stage.FillPercentage > 0.6 ? "fill-warning" : "fill-safe"))" style="width: @(stage.FillPercentage * 100)%"></div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="overlay-panel glass-panel right-panel">
+        <h2 class="panel-title">Live Alerts</h2>
+        <div class="alerts-container">
+            @if (!alerts.Any())
+            {
+                <div class="loading-text">No active alerts...</div>
+            }
+            @foreach (var alert in alerts.OrderByDescending(a => a.Timestamp).Take(5))
+            {
+                <div class="alert-card alert-@alert.Type.ToLower()">
+                    <div class="alert-icon">
+                        @if(alert.Type == "Critical") { <span class="bi bi-exclamation-triangle-fill"></span> }
+                        else if(alert.Type == "Warning") { <span class="bi bi-exclamation-circle-fill"></span> }
+                        else { <span class="bi bi-info-circle-fill"></span> }
+                    </div>
+                    <div class="alert-content">
+                        <div class="alert-message">@alert.Message</div>
+                        <div class="alert-time">@alert.Timestamp.ToLocalTime().ToString("HH:mm:ss")</div>
+                    </div>
+                </div>
+            }
+        </div>
+        
+        <div class="quick-actions">
+            <button class="action-btn btn-primary"><span class="bi bi-broadcast"></span> Send Alert</button>
+            <button class="action-btn btn-secondary"><span class="bi bi-people-fill"></span> Dispatch Staff</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<StageCapacity> stages = new();
+    private List<AlertMessage> alerts = new();
+    private double baseLat = 46.7688;
+    private double baseLng = 23.5700;
+    private bool _stagesDrawn = false;
+    private bool isLoading = true;
+    private string errorMessage = string.Empty;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var festivalInfo = await DataService.GetFestivalInfoAsync();
+            
+            if (festivalInfo != null)
+            {
+                baseLat = festivalInfo.Latitude;
+                baseLng = festivalInfo.Longitude;
+                
+                StompService.Initialize(festivalInfo);
+            }
+            else
+            {
+                errorMessage = "Failed to load festival data. Using defaults.";
+                // Fallback initialization if API fails
+                StompService.Initialize(new FestivalInfo 
+                { 
+                    Latitude = baseLat, 
+                    Longitude = baseLng 
+                });
+            }
+
+            isLoading = false;
+            StateHasChanged();
+
+            await JSRuntime.InvokeVoidAsync("mapInterop.initializeMap", "map", baseLat, baseLng);
+
+            StompService.OnHeatmapUpdated += HandleHeatmapUpdate;
+            StompService.OnStagesUpdated += HandleStagesUpdate;
+            StompService.OnAlertReceived += HandleAlertReceived;
+
+            await StompService.ConnectAsync();
+        }
+    }
+
+    private async void HandleHeatmapUpdate(List<HeatmapPoint> points)
+    {
+        await InvokeAsync(async () =>
+        {
+            await JSRuntime.InvokeVoidAsync("mapInterop.updateHeatmap", points);
+        });
+    }
+
+    private void HandleStagesUpdate(List<StageCapacity> newStages)
+    {
+        InvokeAsync(async () =>
+        {
+            stages = newStages;
+            StateHasChanged();
+
+            if (!_stagesDrawn && stages.Any())
+            {
+                _stagesDrawn = true;
+                await JSRuntime.InvokeVoidAsync("mapInterop.drawStages", stages);
+            }
+        });
+    }
+
+    private void HandleAlertReceived(AlertMessage alert)
+    {
+        InvokeAsync(() =>
+        {
+            alerts.Insert(0, alert);
+            if (alerts.Count > 10) alerts.RemoveAt(alerts.Count - 1);
+            StateHasChanged();
+        });
+    }
+
+    public void Dispose()
+    {
+        StompService.OnHeatmapUpdated -= HandleHeatmapUpdate;
+        StompService.OnStagesUpdated -= HandleStagesUpdate;
+        StompService.OnAlertReceived -= HandleAlertReceived;
+    }
+}

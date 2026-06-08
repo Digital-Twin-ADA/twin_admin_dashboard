@@ -1,19 +1,35 @@
+:root {
+    --bg-dark: #0f172a;
+    --panel-bg: rgba(30, 41, 59, 0.7);
+    --panel-border: rgba(255, 255, 255, 0.1);
+    --text-primary: #ffffff;
+    --text-secondary: #f8fafc;
+    --accent-blue: #3b82f6;
+    --critical-red: #ef4444;
+    --warning-yellow: #f59e0b;
+    --safe-green: #10b981;
+}
+
 html, body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background-color: var(--bg-dark);
+    color: var(--text-primary);
+    font-family: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    margin: 0;
+    overflow-x: hidden;
 }
 
 a, .btn-link {
-    color: #006bb7;
+    color: var(--accent-blue);
 }
 
 .btn-primary {
     color: #fff;
-    background-color: #1b6ec2;
-    border-color: #1861ac;
+    background-color: var(--accent-blue);
+    border-color: var(--accent-blue);
 }
 
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem var(--accent-blue);
 }
 
 .content {
@@ -42,10 +58,237 @@ h1:focus {
     color: white;
 }
 
-    .blazor-error-boundary::after {
-        content: "An error has occurred."
-    }
+.blazor-error-boundary::after {
+    content: "An error has occurred."
+}
 
-.darker-border-checkbox.form-check-input {
-    border-color: #929292;
+/* ----------------------------------- */
+/* Premium Dashboard Styles            */
+/* ----------------------------------- */
+
+.dashboard-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.map-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+/* Glassmorphism Panels */
+.glass-panel {
+    background: var(--panel-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--panel-border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.overlay-panel {
+    position: absolute;
+    top: 2rem;
+    bottom: 2rem;
+    width: 350px;
+    pointer-events: auto;
+}
+
+.left-panel {
+    left: 2rem;
+}
+
+.right-panel {
+    right: 2rem;
+}
+
+.panel-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 0.75rem;
+}
+
+/* Stages */
+.stages-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    overflow-y: auto;
+}
+
+.stage-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.stage-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.stage-capacity {
+    color: var(--text-secondary);
+}
+
+.progress-bar-bg {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease-in-out, background-color 0.3s ease;
+}
+
+.fill-safe { background-color: var(--safe-green); }
+.fill-warning { background-color: var(--warning-yellow); }
+.fill-critical { background-color: var(--critical-red); box-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
+
+/* Alerts */
+.alerts-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+/* Hide scrollbar for alerts but keep functionality */
+.alerts-container::-webkit-scrollbar {
+    width: 4px;
+}
+.alerts-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+.alerts-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+
+.alert-card {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border-left: 4px solid transparent;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.alert-critical { border-left-color: var(--critical-red); }
+.alert-warning { border-left-color: var(--warning-yellow); }
+.alert-info { border-left-color: var(--accent-blue); }
+
+.alert-icon {
+    font-size: 1.25rem;
+    display: flex;
+    align-items: center;
+}
+.alert-critical .alert-icon { color: var(--critical-red); }
+.alert-warning .alert-icon { color: var(--warning-yellow); }
+.alert-info .alert-icon { color: var(--accent-blue); }
+
+.alert-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.alert-message {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.alert-time {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+/* Quick Actions */
+.quick-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: auto;
+}
+
+.action-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+}
+
+.action-btn.btn-primary {
+    background-color: var(--accent-blue);
+    color: white;
+}
+.action-btn.btn-primary:hover {
+    background-color: #2563eb;
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+}
+
+.action-btn.btn-secondary {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+.action-btn.btn-secondary:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.loading-text {
+    color: var(--text-secondary);
+    font-style: italic;
+    text-align: center;
+    padding: 2rem 0;
+}
+
+/* Leaflet Stage Tooltips */
+.leaflet-tooltip.stage-tooltip {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    text-shadow: 0 0 5px black, 0 0 10px black !important;
+    font-size: 1rem !important;
+}
+
+.stage-name {
+    color: white !important;
 }
