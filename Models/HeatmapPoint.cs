@@ -8,5 +8,5 @@ public class HeatmapPoint
     public double Longitude { get; set; }
     
     [JsonPropertyName("weight")]
-    public double Intensity { get; set; } // e.g., 0.0 to 1.0
+    public double Intensity { get; set; }
 }

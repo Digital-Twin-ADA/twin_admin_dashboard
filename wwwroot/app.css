@@ -62,9 +62,7 @@ h1:focus {
     content: "An error has occurred."
 }
 
-/* ----------------------------------- */
-/* Premium Dashboard Styles            */
-/* ----------------------------------- */
+
 
 .dashboard-container {
     position: relative;
@@ -82,7 +80,7 @@ h1:focus {
     z-index: 1;
 }
 
-/* Glassmorphism Panels */
+
 .glass-panel {
     background: var(--panel-bg);
     backdrop-filter: blur(12px);
@@ -124,7 +122,7 @@ h1:focus {
     padding-bottom: 0.75rem;
 }
 
-/* Stages */
+
 .stages-container {
     display: flex;
     flex-direction: column;
@@ -167,7 +165,7 @@ h1:focus {
 .fill-warning { background-color: var(--warning-yellow); }
 .fill-critical { background-color: var(--critical-red); box-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
 
-/* Alerts */
+
 .alerts-container {
     display: flex;
     flex-direction: column;
@@ -176,7 +174,7 @@ h1:focus {
     flex-grow: 1;
 }
 
-/* Hide scrollbar for alerts but keep functionality */
+
 .alerts-container::-webkit-scrollbar {
     width: 4px;
 }
@@ -232,7 +230,7 @@ h1:focus {
     color: var(--text-secondary);
 }
 
-/* Quick Actions */
+
 .quick-actions {
     display: flex;
     gap: 1rem;
@@ -278,7 +276,7 @@ h1:focus {
     padding: 2rem 0;
 }
 
-/* Leaflet Stage Tooltips */
+
 .leaflet-tooltip.stage-tooltip {
     background: transparent !important;
     border: none !important;

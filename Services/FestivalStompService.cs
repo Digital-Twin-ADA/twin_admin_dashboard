@@ -18,8 +18,8 @@ public class FestivalStompService : IFestivalStompService, IDisposable
     private System.Timers.Timer? _timer;
     private readonly Random _random = new Random();
 
-    // Center of the festival map (e.g., somewhere in a generic park, or Untold festival coordinates)
-    private double _baseLat = 46.7688; // Cluj-Napoca (Untold Festival example)
+    private double _baseLat = 46.7688;
+
     private double _baseLng = 23.5700;
 
     private List<StageCapacity> _stages = new();
@@ -43,7 +43,7 @@ public class FestivalStompService : IFestivalStompService, IDisposable
         {
             StageId = s.Id,
             StageName = s.Name,
-            MaxCapacity = s.Capacity > 0 ? s.Capacity : 10000, // Fallback if API returns 0
+            MaxCapacity = s.Capacity > 0 ? s.Capacity : 10000,
             Latitude = s.Latitude,
             Longitude = s.Longitude,
             RadiusMeters = 20 
@@ -55,7 +55,6 @@ public class FestivalStompService : IFestivalStompService, IDisposable
         var baseUrl = _config.GetValue<string>("FestivalApiBaseUrl");
         if (!string.IsNullOrEmpty(baseUrl))
         {
-            // Spring Boot with SockJS exposes the raw WebSocket endpoint at /ws/websocket
             var wsUrl = baseUrl.Replace("http://", "ws://").Replace("https://", "wss://") + "/ws/websocket";
             _stompClient = new StompClient(wsUrl);
             
@@ -81,7 +80,6 @@ public class FestivalStompService : IFestivalStompService, IDisposable
                 OnConnectionStateChanged?.Invoke();
             };
             
-            // Connect in the background so it doesn't block the UI or the HTTP timer
             _ = Task.Run(async () =>
             {
                 try
@@ -95,7 +93,6 @@ public class FestivalStompService : IFestivalStompService, IDisposable
             });
         }
 
-        // Initial load only, no polling timer anymore
         _ = GenerateDataAsync();
 
         return Task.CompletedTask;
@@ -114,7 +111,6 @@ public class FestivalStompService : IFestivalStompService, IDisposable
             var options = new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase };
             var jsonPayload = System.Text.Json.JsonSerializer.Serialize(alert, options);
             
-            // Add content-type header for JSON
             var headers = new Dictionary<string, string>
             {
                 { "content-type", "application/json" }
@@ -135,7 +131,6 @@ public class FestivalStompService : IFestivalStompService, IDisposable
             if (points != null)
             {
                 heatmapPoints = points;
-                // If intensity is missing (0), default it to a reasonable value for the heatmap
                 foreach (var pt in heatmapPoints)
                 {
                     if (pt.Intensity == 0) pt.Intensity = 1.0;
@@ -145,27 +140,23 @@ public class FestivalStompService : IFestivalStompService, IDisposable
 
         OnHeatmapUpdated?.Invoke(heatmapPoints);
 
-        // 2. Calculate Stage Capacities based on heatmap points
         foreach(var stage in _stages) stage.CurrentCapacity = 0;
 
         foreach(var point in heatmapPoints)
         {
             foreach(var stage in _stages)
             {
-                // Euclidean distance approximation in meters
                 double dLat = (point.Latitude - stage.Latitude) * 111320.0;
                 double dLng = (point.Longitude - stage.Longitude) * 76300.0;
                 double distanceMeters = Math.Sqrt(dLat * dLat + dLng * dLng);
 
                 if (distanceMeters <= stage.RadiusMeters)
                 {
-                    // Each point represents exactly one person
                     stage.CurrentCapacity += 1;
                 }
             }
         }
         
-        // Ensure it doesn't wildly exceed max capacity for display purposes
         foreach(var stage in _stages)
         {
             if (stage.CurrentCapacity > stage.MaxCapacity * 1.05) 
@@ -187,33 +178,28 @@ public class FestivalStompService : IFestivalStompService, IDisposable
             if (points != null)
             {
                 var heatmapPoints = points;
-                // If intensity is missing (0), default it to a reasonable value for the heatmap
                 foreach (var pt in heatmapPoints)
                 {
                     if (pt.Intensity == 0) pt.Intensity = 1.0;
                 }
 
-                // 2. Calculate Stage Capacities based on heatmap points
                 foreach(var stage in _stages) stage.CurrentCapacity = 0;
 
                 foreach(var point in heatmapPoints)
                 {
                     foreach(var stage in _stages)
                     {
-                        // Euclidean distance approximation in meters
                         double dLat = (point.Latitude - stage.Latitude) * 111320.0;
                         double dLng = (point.Longitude - stage.Longitude) * 76300.0;
                         double distanceMeters = Math.Sqrt(dLat * dLat + dLng * dLng);
 
                         if (distanceMeters <= stage.RadiusMeters)
                         {
-                            // Each point represents exactly one person
                             stage.CurrentCapacity += 1;
                         }
                     }
                 }
                 
-                // Ensure it doesn't wildly exceed max capacity for display purposes
                 foreach(var stage in _stages)
                 {
                     if (stage.CurrentCapacity > stage.MaxCapacity * 1.05) 
@@ -241,7 +227,6 @@ public class FestivalStompService : IFestivalStompService, IDisposable
             
             if (alertData != null)
             {
-                // Map the backend's HIGH/MEDIUM/LOW severity to our UI's Critical/Warning/Info
                 string uiType = "Info";
                 if (!string.IsNullOrEmpty(alertData.Severity))
                 {
@@ -251,7 +236,7 @@ public class FestivalStompService : IFestivalStompService, IDisposable
                 }
                 else if (!string.IsNullOrEmpty(alertData.Type))
                 {
-                    uiType = alertData.Type; // Fallback
+                    uiType = alertData.Type;
                 }
 
                 var msg = new AlertMessage 

@@ -166,7 +166,6 @@
             else
             {
                 errorMessage = "Failed to load festival data. Using defaults.";
-                // Fallback initialization if API fails
                 StompService.Initialize(new FestivalInfo 
                 { 
                     Latitude = baseLat, 
@@ -192,7 +191,12 @@
     {
         await InvokeAsync(async () =>
         {
-            await JSRuntime.InvokeVoidAsync("mapInterop.updateHeatmap", points);
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("mapInterop.updateHeatmap", points);
+            }
+            catch (TaskCanceledException) { }
+            catch (Exception ex) when (ex.GetType().Name == "JSDisconnectedException") { }
         });
     }
 
@@ -200,14 +204,19 @@
     {
         InvokeAsync(async () =>
         {
-            stages = newStages;
-            StateHasChanged();
-
-            if (!_stagesDrawn && stages.Any())
+            try
             {
-                _stagesDrawn = true;
-                await JSRuntime.InvokeVoidAsync("mapInterop.drawStages", stages);
+                stages = newStages;
+                StateHasChanged();
+
+                if (!_stagesDrawn && stages.Any())
+                {
+                    _stagesDrawn = true;
+                    await JSRuntime.InvokeVoidAsync("mapInterop.drawStages", stages);
+                }
             }
+            catch (TaskCanceledException) { }
+            catch (Exception ex) when (ex.GetType().Name == "JSDisconnectedException") { }
         });
     }
 
@@ -238,13 +247,11 @@
     {
         if (newAlert.StageId == 0 || string.IsNullOrEmpty(newAlert.Type) || string.IsNullOrEmpty(newAlert.Severity))
         {
-            // Simple validation: make sure they selected a stage
             if (newAlert.StageId == 0) return;
         }
 
         await StompService.SendAlertAsync(newAlert);
         
-        // Reset form
         newAlert = new CustomAlertRequest { Type = "SAFETY", Severity = "HIGH" };
         showSendAlertModal = false;
     }
